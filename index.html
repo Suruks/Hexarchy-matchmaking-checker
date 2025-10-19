@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Hexarchy Checker Live</title>
+<title>Queue Checker Live</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -27,6 +27,7 @@
     align-items: center;
     gap: 6px;
     font-size: 14px;
+    margin-bottom: 6px;
   }
 </style>
 </head>
@@ -40,33 +41,41 @@
   Enable notifications
 </label>
 
+<label>
+  <input type="checkbox" id="soundToggle">
+  Enable sound
+</label>
+
+<audio id="alertSound" src="https://www.myinstants.com/media/sounds/punch-gaming-sound-effect-hd_RzlG1GE.mp3" preload="auto"></audio>
+
 <script>
-const URL = 'https://hidden-block-8fcd.curuex.workers.dev/'; // ← your Cloudflare Worker URL
+const URL = 'https://your-worker-name.username.workers.dev'; // ← ваш Cloudflare Worker URL
 
 const statusEl = document.getElementById('status');
 const lastCheckEl = document.getElementById('lastCheck');
 const notifyToggle = document.getElementById('notifyToggle');
+const soundToggle = document.getElementById('soundToggle');
+const alertSound = document.getElementById('alertSound');
 
 let previousOpenGames = null;
 let intervalId;
 let notificationsEnabled = false;
+let soundEnabled = false;
 
 // --- Notifications ---
 async function requestNotificationPermission() {
-  if (!('Notification' in window)) {
-    console.warn('Browser does not support notifications.');
-    return false;
-  }
+  if (!('Notification' in window)) return false;
   const permission = await Notification.requestPermission();
   return permission === 'granted';
 }
 
 function sendNotification(title, body) {
   if (notificationsEnabled && Notification.permission === 'granted') {
-    new Notification(title, {
-      body,
-      icon: 'https://match.maintankservers.com/favicon.ico'
-    });
+    new Notification(title, { body, icon: 'https://match.maintankservers.com/favicon.ico' });
+  }
+  if (soundEnabled) {
+    alertSound.currentTime = 0;
+    alertSound.play();
   }
 }
 
@@ -83,14 +92,18 @@ async function checkQueue() {
     if (data.openGames === 0) {
       statusEl.textContent = 'Patience… challengers will appear.';
       statusEl.className = 'black';
+      document.title = 'Queue Checker Live';
     } else if (data.openGames > 0) {
       statusEl.textContent = 'Players are looking for a game!';
       statusEl.className = 'green';
+      document.title = 'Match found!';
     } else {
       statusEl.textContent = JSON.stringify(data, null, 2);
       statusEl.className = 'red';
+      document.title = 'Queue Checker Live';
     }
 
+    // уведомление только при изменении с "0" → ">0"
     if (previousOpenGames !== null && previousOpenGames === 0 && data.openGames > 0) {
       sendNotification('Hexarchy — Match found!', 'Players are looking for a game!');
     }
@@ -98,8 +111,7 @@ async function checkQueue() {
     previousOpenGames = data.openGames;
 
   } catch (err) {
-    const now = new Date();
-    lastCheckEl.textContent = `Last check: ${now.toLocaleString()}`;
+    lastCheckEl.textContent = `Last check: ${new Date().toLocaleString()}`;
     statusEl.textContent = 'Network error: ' + err;
     statusEl.className = 'red';
   }
@@ -115,7 +127,7 @@ function stopLiveCheck() {
   clearInterval(intervalId);
 }
 
-// --- Toggle notifications ---
+// --- Toggle handlers ---
 notifyToggle.addEventListener('change', async () => {
   if (notifyToggle.checked) {
     const granted = await requestNotificationPermission();
@@ -129,7 +141,11 @@ notifyToggle.addEventListener('change', async () => {
   }
 });
 
-// Start loop
+soundToggle.addEventListener('change', () => {
+  soundEnabled = soundToggle.checked;
+});
+
+// --- Start ---
 startLiveCheck();
 </script>
 
