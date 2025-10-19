@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Queue Checker Live</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+  #status { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+  #lastCheck { font-size: 14px; color: #555; margin-bottom: 20px; }
+  .black { color: black; }
+  .green { color: darkgreen; }
+  .red { color: darkred; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<div id="status">Загрузка...</div>
+<div id="lastCheck">Последняя проверка: —</div>
+
+<script>
+const URL = '/api'; // API путь на том же сервере
+const statusEl = document.getElementById('status');
+const lastCheckEl = document.getElementById('lastCheck');
+
+let intervalId;
+
+async function checkQueue() {
+    try {
+        const res = await fetch(URL);
+        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        const data = await res.json();
+
+        const now = new Date();
+        lastCheckEl.textContent = `Last check: ${now.toLocaleString()}`;
+
+        if (data.openGames === 0) {
+            statusEl.textContent = 'Patience… challengers will appear.';
+            statusEl.className = 'black';
+        } else if (data.openGames > 0) {
+            statusEl.textContent = 'Players are looking for a game!';
+            statusEl.className = 'green';
+        } else {
+            statusEl.textContent = JSON.stringify(data, null, 2);
+            statusEl.className = 'red';
+        }
+    } catch (err) {
+        const now = new Date();
+        lastCheckEl.textContent = `Последняя проверка: ${now.toLocaleString()}`;
+        statusEl.textContent = 'Ошибка сети / CORS: ' + err;
+        statusEl.className = 'red';
+    }
+}
+
+function startLiveCheck() {
+    checkQueue(); // сразу одна проверка
+    intervalId = setInterval(checkQueue, 5000);
+}
+
+function stopLiveCheck() {
+    clearInterval(intervalId);
+}
+
+// стартуем автообновление при загрузке
+startLiveCheck();
+</script>
+
+</body>
+</html>
