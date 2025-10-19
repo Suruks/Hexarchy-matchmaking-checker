@@ -1,15 +1,33 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Queue Checker Live</title>
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
-  #status { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-  #lastCheck { font-size: 14px; color: #555; margin-bottom: 20px; }
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background: #f0f0f0;
+  }
+  #status {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  #lastCheck {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+  }
   .black { color: black; }
   .green { color: darkgreen; }
   .red { color: darkred; white-space: pre-wrap; }
+  label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+  }
 </style>
 </head>
 <body>
@@ -17,50 +35,101 @@
 <div id="status">Loading...</div>
 <div id="lastCheck">Last check: —</div>
 
+<label>
+  <input type="checkbox" id="notifyToggle">
+  Enable notifications
+</label>
+
 <script>
-const URL = 'https://hidden-block-8fcd.curuex.workers.dev/';
+const URL = 'https://your-worker-name.username.workers.dev'; // ← your Cloudflare Worker URL
+
 const statusEl = document.getElementById('status');
 const lastCheckEl = document.getElementById('lastCheck');
+const notifyToggle = document.getElementById('notifyToggle');
 
+let previousOpenGames = null;
 let intervalId;
+let notificationsEnabled = false;
 
-async function checkQueue() {
-    try {
-        const res = await fetch(URL);
-        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
-        const data = await res.json();
-
-        const now = new Date();
-        lastCheckEl.textContent = `Last check: ${now.toLocaleString()}`;
-
-        if (data.openGames === 0) {
-            statusEl.textContent = 'Patience… challengers will appear.';
-            statusEl.className = 'black';
-        } else if (data.openGames > 0) {
-            statusEl.textContent = 'Players are looking for a game!';
-            statusEl.className = 'green';
-        } else {
-            statusEl.textContent = JSON.stringify(data, null, 2);
-            statusEl.className = 'red';
-        }
-    } catch (err) {
-        const now = new Date();
-        lastCheckEl.textContent = `Last check: ${now.toLocaleString()}`;
-        statusEl.textContent = 'Network error: ' + err;
-        statusEl.className = 'red';
-    }
+// --- Notifications ---
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    console.warn('Browser does not support notifications.');
+    return false;
+  }
+  const permission = await Notification.requestPermission();
+  return permission === 'granted';
 }
 
+function sendNotification(title, body) {
+  if (notificationsEnabled && Notification.permission === 'granted') {
+    new Notification(title, {
+      body,
+      icon: 'https://match.maintankservers.com/favicon.ico'
+    });
+  }
+}
+
+// --- Queue check ---
+async function checkQueue() {
+  try {
+    const res = await fetch(URL);
+    if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+    const data = await res.json();
+
+    const now = new Date();
+    lastCheckEl.textContent = `Last check: ${now.toLocaleString()}`;
+
+    if (data.openGames === 0) {
+      statusEl.textContent = 'Patience… challengers will appear.';
+      statusEl.className = 'black';
+    } else if (data.openGames > 0) {
+      statusEl.textContent = 'Players are looking for a game!';
+      statusEl.className = 'green';
+    } else {
+      statusEl.textContent = JSON.stringify(data, null, 2);
+      statusEl.className = 'red';
+    }
+
+    if (previousOpenGames !== null && previousOpenGames === 0 && data.openGames > 0) {
+      sendNotification('Hexarchy — Match found!', 'Players are looking for a game!');
+    }
+
+    previousOpenGames = data.openGames;
+
+  } catch (err) {
+    const now = new Date();
+    lastCheckEl.textContent = `Last check: ${now.toLocaleString()}`;
+    statusEl.textContent = 'Network error / CORS: ' + err;
+    statusEl.className = 'red';
+  }
+}
+
+// --- Auto refresh ---
 function startLiveCheck() {
-    checkQueue(); // сразу одна проверка
-    intervalId = setInterval(checkQueue, 5000);
+  checkQueue();
+  intervalId = setInterval(checkQueue, 5000);
 }
 
 function stopLiveCheck() {
-    clearInterval(intervalId);
+  clearInterval(intervalId);
 }
 
-// стартуем автообновление при загрузке
+// --- Toggle notifications ---
+notifyToggle.addEventListener('change', async () => {
+  if (notifyToggle.checked) {
+    const granted = await requestNotificationPermission();
+    notificationsEnabled = granted;
+    if (!granted) {
+      alert('Notifications are blocked in your browser settings.');
+      notifyToggle.checked = false;
+    }
+  } else {
+    notificationsEnabled = false;
+  }
+});
+
+// Start loop
 startLiveCheck();
 </script>
 
