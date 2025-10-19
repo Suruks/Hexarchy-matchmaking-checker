@@ -2,22 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Queue Checker Live</title>
+<title>Hexarchy Checker</title>
 <style>
   body {
     font-family: Arial, sans-serif;
     padding: 20px;
     background: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
   }
   #status {
     font-size: 24px;
     font-weight: bold;
     margin-bottom: 10px;
+    text-align: center;
   }
   #lastCheck {
     font-size: 14px;
     color: #555;
     margin-bottom: 20px;
+    text-align: center;
   }
   .black { color: black; }
   .green { color: darkgreen; }
@@ -28,6 +34,12 @@
     gap: 6px;
     font-size: 14px;
     margin-bottom: 6px;
+  }
+  #launchButton {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
   }
 </style>
 </head>
@@ -46,23 +58,25 @@
   Enable sound
 </label>
 
+<button id="launchButton">Launch Hexarchy</button>
+
 <audio id="alertSound" src="alert.mp3" preload="auto"></audio>
 
 <script>
-const URL = 'https://hidden-block-8fcd.curuex.workers.dev/'; // ← ваш Cloudflare Worker URL
+const URL = 'https://your-worker-name.username.workers.dev'; // ← ваш Cloudflare Worker URL
 
 const statusEl = document.getElementById('status');
 const lastCheckEl = document.getElementById('lastCheck');
 const notifyToggle = document.getElementById('notifyToggle');
 const soundToggle = document.getElementById('soundToggle');
 const alertSound = document.getElementById('alertSound');
+const launchButton = document.getElementById('launchButton');
 
 let previousOpenGames = null;
 let intervalId;
 let notificationsEnabled = false;
 let soundEnabled = false;
 
-// --- Notifications ---
 async function requestNotificationPermission() {
   if (!('Notification' in window)) return false;
   const permission = await Notification.requestPermission();
@@ -79,7 +93,6 @@ function sendNotification(title, body) {
   }
 }
 
-// --- Queue check ---
 async function checkQueue() {
   try {
     const res = await fetch(URL);
@@ -92,18 +105,17 @@ async function checkQueue() {
     if (data.openGames === 0) {
       statusEl.textContent = 'Patience… challengers will appear.';
       statusEl.className = 'black';
-      document.title = 'Queue Checker Live';
+      document.title = 'Hexarchy Checker';
     } else if (data.openGames > 0) {
       statusEl.textContent = 'Players are looking for a game!';
       statusEl.className = 'green';
-      document.title = 'Match found!';
+      document.title = 'Match found! — Hexarchy Checker';
     } else {
       statusEl.textContent = JSON.stringify(data, null, 2);
       statusEl.className = 'red';
-      document.title = 'Queue Checker Live';
+      document.title = 'Error! — Hexarchy Checker';
     }
 
-    // уведомление только при изменении с "0" → ">0"
     if (previousOpenGames !== null && previousOpenGames === 0 && data.openGames > 0) {
       sendNotification('Hexarchy — Match found!', 'Players are looking for a game!');
     }
@@ -114,10 +126,10 @@ async function checkQueue() {
     lastCheckEl.textContent = `Last check: ${new Date().toLocaleString()}`;
     statusEl.textContent = 'Network error: ' + err;
     statusEl.className = 'red';
+    document.title = 'Error! — Hexarchy Checker';
   }
 }
 
-// --- Auto refresh ---
 function startLiveCheck() {
   checkQueue();
   intervalId = setInterval(checkQueue, 5000);
@@ -127,7 +139,6 @@ function stopLiveCheck() {
   clearInterval(intervalId);
 }
 
-// --- Toggle handlers ---
 notifyToggle.addEventListener('change', async () => {
   if (notifyToggle.checked) {
     const granted = await requestNotificationPermission();
@@ -145,7 +156,10 @@ soundToggle.addEventListener('change', () => {
   soundEnabled = soundToggle.checked;
 });
 
-// --- Start ---
+launchButton.addEventListener('click', () => {
+  window.location.href = 'steam://rungameid/1356810';
+});
+
 startLiveCheck();
 </script>
 
