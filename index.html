@@ -46,7 +46,7 @@ async function checkQueue() {
     } catch (err) {
         const now = new Date();
         lastCheckEl.textContent = `Last check: ${now.toLocaleString()}`;
-        statusEl.textContent = 'Network error / CORS: ' + err;
+        statusEl.textContent = 'Network error: ' + err;
         statusEl.className = 'red';
     }
 }
