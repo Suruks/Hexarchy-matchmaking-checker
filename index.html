@@ -14,11 +14,11 @@
 </head>
 <body>
 
-<div id="status">Загрузка...</div>
-<div id="lastCheck">Последняя проверка: —</div>
+<div id="status">Loading...</div>
+<div id="lastCheck">Last check: —</div>
 
 <script>
-const URL = '/api'; // API путь на том же сервере
+const URL = 'https://corsproxy.io/?https://match.maintankservers.com/QueueStats/1198';
 const statusEl = document.getElementById('status');
 const lastCheckEl = document.getElementById('lastCheck');
 
@@ -45,8 +45,8 @@ async function checkQueue() {
         }
     } catch (err) {
         const now = new Date();
-        lastCheckEl.textContent = `Последняя проверка: ${now.toLocaleString()}`;
-        statusEl.textContent = 'Ошибка сети / CORS: ' + err;
+        lastCheckEl.textContent = `Last check: ${now.toLocaleString()}`;
+        statusEl.textContent = 'Network error / CORS: ' + err;
         statusEl.className = 'red';
     }
 }
